@@ -1,0 +1,16 @@
+{
+  "python": {
+    "command": "pyright-langserver",
+    "args": ["--stdio"],
+    "extensionToLanguage": {
+      ".py": "python"
+    }
+  },
+  "ruff": {
+    "command": "ruff",
+    "args": ["server"],
+    "extensionToLanguage": {
+      ".py": "python"
+    }
+  }
+}

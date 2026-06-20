@@ -1,5 +1,6 @@
 ---
 name: langchain-providers
+argument-hint: "[anthropic|openai|bedrock|ollama]"
 description: >
   Configure, tune, and harden LangChain provider integrations in production Python 3.11+
   services. Triggers on: ChatOpenAI, AzureChatOpenAI, use_responses_api, reasoning_effort,
@@ -10,6 +11,8 @@ description: >
   InMemoryRateLimiter, with_retry, with_fallbacks, model_provider,
   Anthropic model retirement, init_chat_model, content_blocks, stream_usage.
 ---
+
+If invoked with `$ARGUMENTS`, focus exclusively on that provider and skip unrelated sections.
 
 ## Core Philosophy
 
@@ -94,8 +97,9 @@ After configuring a provider, provide the exact verification commands:
 
 ```bash
 # Verify package versions match pinned values
-uv pip show langchain-openai langchain-anthropic langchain-aws langchain-mistralai \
-    langchain-groq langchain-ollama langchain-huggingface langchain-cohere
+uv run python -c "import langchain_openai, langchain_anthropic; print('imports OK')"
+# Or check versions via:
+# uv pip show langchain-openai langchain-anthropic langchain-aws
 
 # Smoke test provider auth (replace model/provider as needed)
 uv run python -c "

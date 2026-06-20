@@ -1,0 +1,14 @@
+[
+  {
+    "name": "langgraph-server-log",
+    "command": "tail -F \"${CLAUDE_PROJECT_DIR}/logs/langgraph.log\" 2>/dev/null",
+    "description": "LangGraph dev server output — redirect server logs with: langgraph dev 2>&1 | tee logs/langgraph.log",
+    "when": "on-skill-invoke:langgraph-deployment"
+  },
+  {
+    "name": "eval-output-log",
+    "command": "tail -F \"${CLAUDE_PROJECT_DIR}/logs/eval.log\" 2>/dev/null",
+    "description": "Evaluation run output — redirect eval output with: uv run pytest -s 2>&1 | tee logs/eval.log",
+    "when": "on-skill-invoke:llm-evaluation"
+  }
+]

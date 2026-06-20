@@ -5,28 +5,37 @@
 [![LangGraph](https://img.shields.io/badge/LangGraph-1.x-green)](https://langchain-ai.github.io/langgraph/)
 [![LangChain](https://img.shields.io/badge/LangChain-Core_1.x-green)](https://python.langchain.com/)
 
-Claude Code plugin for building production LangGraph agents with the full LangChain/LangGraph/LangSmith stack.
+Claude Code plugin for building production LangGraph agents with the full LangChain/LangGraph stack.
 
 ## Highlights
 
-- **12 specialised skills** covering the complete agent development lifecycle — from Python project setup through multi-agent topology, RAG pipelines, MCP tool integration, tracing, and production deployment.
-- **4 expert agents** — an architect for topology planning (Opus), a code generator that produces runnable implementations (Sonnet), a deployment specialist for LangSmith/self-hosted, and a debugger that diagnoses failures from LangSmith traces.
-- **Three-layer skill model** — Foundation → Build → Operate. Each layer explicitly depends on the one below it, so you always know which skill governs which decision.
+- **13 specialised skills** covering the complete agent development lifecycle — from Python project setup through multi-agent topology, RAG pipelines, MCP tool integration, LLM evaluation, observability, and production deployment. Four skills accept focus arguments to scope the session to a specific provider or topic (e.g. `/agentcraft:langchain-providers bedrock`).
+- **6 specialist agents** — `agent-architect`, `code-generator`, `code-reviewer`, `debugger`, `deployment-specialist`, and `evaluator` — each with the right skills pre-wired and the right model and effort budget. `code-generator` runs in an isolated git worktree so generated code never pollutes your working tree.
+- **Automated developer environment** — a `SessionStart` hook writes API credentials from plugin config to `.agentcraft.env` in your project directory, and a `PostToolUse` hook runs `ruff check --fix` automatically on every Python file Claude writes or edits.
+- **Live code intelligence** — Pyright and Ruff language servers are bundled, giving Claude real-time type errors and lint feedback while editing agent code.
+- **Background log streaming** — monitors activate when deployment or evaluation skills fire, tailing `logs/langgraph.log` and `logs/eval.log` so Claude sees server output in real time without manual log piping.
 - **No deprecated patterns.** Skills enforce LangChain Core 1.x and LangGraph 1.x APIs: `create_agent`, `init_chat_model`, `PostgresSaver`, `InjectedStore`, `aindex()`. `AgentExecutor`, `LLMChain`, and `ConversationBufferMemory` are never suggested.
-- **LangSmith-first observability.** Every skill assumes `LANGSMITH_TRACING=true`. Evaluation datasets and LLM-as-judge evaluators are defined from day one, not as an afterthought.
+- **Evaluation-first.** `llm-evaluation` and `observability` are first-class concerns, not afterthoughts. Every project is expected to have evaluation datasets, LLM-as-judge evaluators, and tracing from day one.
 
 ## Table of Contents
 
 - [Installation](#installation)
-- [Agent Architecture](#agent-architecture)
+- [Skill Architecture](#skill-architecture)
   - [Skill Layers](#skill-layers)
   - [Skill Composition](#skill-composition)
-  - [Agents](#agents)
+- [Specialist Agents](#specialist-agents)
 - [Usage](#usage)
   - [Auto-invocation](#auto-invocation)
   - [Explicit invocation](#explicit-invocation)
-  - [End-to-end workflow](#end-to-end-workflow)
+  - [Scoped invocation](#scoped-invocation)
+  - [Using agents](#using-agents)
+- [Automation](#automation)
+  - [SessionStart hook](#sessionstart-hook)
+  - [PostToolUse hook](#posttooluse-hook)
+  - [Background monitors](#background-monitors)
 - [Configuration](#configuration)
+  - [LSP prerequisites](#lsp-prerequisites)
+- [Support](#support)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -55,178 +64,203 @@ Verify the plugin loaded:
 # agentcraft  1.0.0  enabled
 ```
 
-## Agent Architecture
+## Skill Architecture
 
 ### Skill Layers
 
-The 12 skills are organised into three layers. Each layer builds on the one below it — you cannot effectively use a Layer 2 skill without the concepts from Layer 1.
-
-```mermaid
-graph TD
-    subgraph L1 ["Layer 1 — Foundations"]
-        PS[python-standards]
-        LC[langchain-core]
-    end
-    subgraph L2 ["Layer 2 — Build"]
-        LP[langchain-providers]
-        LA[langchain-agents]
-        LT[langchain-tools-mcp]
-        LR[langchain-rag]
-        LGC[langgraph-core]
-        LGM[langgraph-memory]
-        LGU[langgraph-multiagent]
-        PE[prompt-engineering]
-    end
-    subgraph L3 ["Layer 3 — Operate"]
-        LSC[langsmith-core]
-        LSD[langsmith-deployment]
-    end
-
-    PS --> LC
-    LC --> LP
-    LC --> LA
-    LC --> LT
-    LC --> LR
-    LA --> LGC
-    LT --> LGC
-    PE --> LA
-    LGC --> LGM
-    LGC --> LGU
-    LGM --> LSC
-    LGU --> LSC
-    LR --> LSC
-    LSC --> LSD
-```
+The 13 skills are organised into three layers. Each layer builds on the one below it.
 
 **Layer 1 — Foundations**
 
 | Skill | Governs |
 |-------|---------|
-| `python-standards` | `uv`, Ruff, pyright, pytest, Google docstrings, `src/` layout, pre-commit. The baseline every other skill assumes. |
-| `langchain-core` | LCEL pipe syntax, `init_chat_model`, `astream_events`, `with_structured_output`, `CacheBackedEmbeddings`, v1 content blocks. Every LangChain/LangGraph skill depends on this one. |
+| `developer-experience` | `uv`, Ruff, Pyright, pre-commit, detect-secrets, `src/` layout, Google docstrings. The Python baseline every other skill assumes. |
+| `langchain-core` | LCEL pipe syntax, `init_chat_model`, `astream_events`, `with_structured_output`, `CacheBackedEmbeddings`. Every LangChain/LangGraph skill depends on this. |
 
 **Layer 2 — Build**
 
 | Skill | Governs |
 |-------|---------|
-| `langchain-providers` | Provider-specific config on top of `langchain-core`: `ChatBedrockConverse` for AWS, Responses API for OpenAI, extended thinking for Anthropic, `with_retry`, `with_fallbacks`. |
-| `langchain-agents` | The `create_agent` factory — compiles to a `CompiledStateGraph`. Default entry point for any standard tool-calling agent. Reach for `langgraph-core` directly only when you need full graph control. |
-| `langchain-tools-mcp` | `@tool`, `BaseTool`, `InjectedToolCallId`, `MultiServerMCPClient`, server-side tools, `with_structured_output` strategy. Tool description quality is the primary determinant of agent quality. |
-| `langchain-rag` | Idempotent ingestion (`SQLRecordManager` + `aindex()`), vector store selection, hybrid search, `SemanticChunker`, two-stage retrieve-then-rerank. |
-| `langgraph-core` | `StateGraph`, reducers, `PostgresSaver`, `interrupt()`, `Command(resume=)`, streaming modes, `RetryPolicy`, `CachePolicy`, time-travel. The engine `langchain-agents` compiles to. |
+| `langchain-providers` | Provider-specific config: `ChatBedrockConverse` for AWS, Responses API for OpenAI, extended thinking for Anthropic, `with_retry`, `with_fallbacks`. |
+| `langchain-tools-mcp` | `@tool`, `BaseTool`, `InjectedToolCallId`, `MultiServerMCPClient`, server-side tools, `with_structured_output` strategy. |
+| `langchain-rag` | Idempotent ingestion (`SQLRecordManager` + `aindex()`), vector store selection, hybrid search, `SemanticChunker`, retrieve-then-rerank. |
+| `langgraph-core` | `StateGraph`, reducers, `PostgresSaver`, `interrupt()`, `Command(resume=)`, streaming modes, `RetryPolicy`, `CachePolicy`, time-travel. |
 | `langgraph-memory` | Short-term context management (`trim_messages`, `SummarizationNode`) and long-term cross-thread memory (`PostgresStore`, `InjectedStore`, LangMem SDK). |
-| `langgraph-multiagent` | Supervisor pattern (`Command(goto=...)`), swarm (`create_handoff_tool`), `RemoteGraph`, `langgraph-bigtool`, Deep Agents harness (`create_deep_agent`, middleware). |
+| `langgraph-multiagent` | Supervisor pattern (`Command(goto=...)`), swarm (`create_handoff_tool`), `RemoteGraph`, `langgraph-bigtool`, Deep Agents harness. |
 | `prompt-engineering` | System prompt design for every node archetype — planner, router, executor, critic, summariser, RAG retriever — matched to the right technique (Zero-Shot, CoT, ReAct, ToT, Reflexion). |
+| `testing-foundations` | pytest, pytest-asyncio strict mode, LangChain mock objects, Hypothesis property-based testing, test layout conventions. |
 
 **Layer 3 — Operate**
 
 | Skill | Governs |
 |-------|---------|
-| `langsmith-core` | `@traceable`, `LANGSMITH_TRACING`, `evaluate()`, `create_llm_as_judge`, `create_trajectory_match_evaluator`, prompt pull/push/promote by commit SHA. |
-| `langsmith-deployment` | `langgraph.json`, `langgraph dev/build/deploy`, Agent Server runtime (Assistant, Thread, Run, Cron), self-hosted Docker Compose, BYOC Helm, `RemoteGraph` client. |
+| `llm-evaluation` | DeepEval, RAGAS, eval-repo architecture, dataset management, LLM-as-judge evaluators, CI gating. |
+| `observability` | MLflow 3.x tracing, Prompt Registry, experiment tracking, GenAI evaluation, trace instrumentation. |
+| `langgraph-deployment` | `langgraph.json`, `langgraph dev/build/deploy`, Agent Server runtime (Assistant, Thread, Run, Cron), self-hosted Docker Compose, BYOC Helm, `RemoteGraph` client. |
 
 ### Skill Composition
 
 A typical project uses skills in this order:
 
 ```text
-python-standards          ← pyproject.toml, uv, Ruff, pytest
-  └─ langchain-core       ← init_chat_model, LCEL, streaming
-       ├─ langchain-providers    ← tune the model provider
-       ├─ langchain-tools-mcp   ← define tools + MCP client
-       │    └─ langchain-agents ← create_agent → CompiledStateGraph
-       │         └─ langgraph-core     ← customise graph topology
-       │              ├─ langgraph-memory    ← short/long-term memory
-       │              └─ langgraph-multiagent  ← supervisor / swarm
-       ├─ langchain-rag         ← document retrieval
-       ├─ prompt-engineering    ← node system prompts
-       └─ langsmith-core        ← tracing + evaluation
-            └─ langsmith-deployment   ← production deployment
+developer-experience          ← pyproject.toml, uv, Ruff, pytest, pre-commit
+  └─ langchain-core           ← init_chat_model, LCEL, streaming
+       ├─ langchain-providers      ← tune the model provider
+       ├─ langchain-tools-mcp      ← define tools + MCP client
+       │    └─ langgraph-core      ← customise graph topology
+       │         ├─ langgraph-memory    ← short/long-term memory
+       │         └─ langgraph-multiagent  ← supervisor / swarm
+       ├─ langchain-rag            ← document retrieval
+       ├─ prompt-engineering       ← node system prompts
+       ├─ testing-foundations      ← test suite
+       └─ llm-evaluation           ← evaluation datasets + CI gating
+            ├─ observability       ← tracing + experiment tracking
+            └─ langgraph-deployment  ← production deployment
 ```
 
-### Agents
+## Specialist Agents
 
-| Agent | Role | Model | When to use |
-|-------|------|-------|-------------|
-| `agentcraft:agent-architect` | Designs agent topology and produces an architecture plan | Opus (high effort) | Before writing any code — decide pattern, state schema, memory strategy |
-| `agentcraft:code-generator` | Generates complete, production-ready Python implementation | Sonnet (high effort) | After the architecture is planned — produces runnable files |
-| `agentcraft:deployment-specialist` | Writes `langgraph.json`, Docker Compose, CI/CD pipeline | Sonnet | When the code is ready and needs to go to production |
-| `agentcraft:debugger` | Diagnoses and fixes runtime failures across the full stack | Sonnet (high effort) | When something is broken — always asks for a LangSmith trace URL first |
+Six agents are available via the `/agents` picker or are auto-delegated when Claude determines a task matches their scope.
+
+| Agent | Model | Role | Notes |
+|-------|-------|------|-------|
+| `agent-architect` | Opus / high | Designs agent topologies, chooses between supervisor/swarm/pipeline patterns, plans checkpointing and memory strategy | — |
+| `code-generator` | Sonnet / high | Implements `StateGraph`, tools, RAG pipelines, MCP clients, and memory setup from an architectural plan | Runs in an isolated git worktree |
+| `code-reviewer` | Sonnet / high | Audits code for deprecated API patterns, missing type annotations, incorrect async usage, and absent observability | Read-only (cannot write files) |
+| `debugger` | Sonnet / high | Diagnoses tool-not-called, stuck loops, missing traces, memory failures, and MCP connection errors | — |
+| `deployment-specialist` | Sonnet / medium | Writes `langgraph.json`, configures Docker Compose and Postgres/Redis backends, wires `RemoteGraph` | — |
+| `evaluator` | Sonnet / high | Designs DeepEval/RAGAS suites, creates synthetic datasets, sets up MLflow experiment tracking, gates CI pipelines | — |
 
 ## Usage
 
 ### Auto-invocation
 
-Skills load automatically when Claude detects relevant context. Mentioning `create_agent`, `StateGraph`, `PostgresSaver`, `@traceable`, `aindex()`, or any trigger phrase from a skill description causes that skill to activate. You do not need to invoke skills manually for most tasks.
+Skills load automatically when Claude detects relevant context. Mentioning `StateGraph`, `PostgresSaver`, `create_agent`, `aindex()`, `MultiServerMCPClient`, `DeepEval`, or any trigger phrase from a skill description causes that skill to activate.
 
 ### Explicit invocation
 
-Invoke any skill or agent directly from the Claude Code prompt:
+Invoke any skill directly using the `agentcraft:` namespace:
 
 ```text
-/agentcraft:agent-architect   <your request>
-/agentcraft:code-generator    <your request>
-/agentcraft:deployment-specialist  <your request>
-/agentcraft:debugger          <your request>
+/agentcraft:langchain-core
+/agentcraft:langgraph-core
+/agentcraft:langchain-rag
+/agentcraft:llm-evaluation
+/agentcraft:langgraph-deployment
 ```
 
-Individual skills can also be invoked by name — for example, `/agentcraft:langgraph-core` for a targeted question about checkpointing or streaming.
+### Scoped invocation
 
-### End-to-end workflow
-
-**Step 1 — Design the architecture**
+Four skills accept an optional argument to focus the session on a specific area:
 
 ```text
-/agentcraft:agent-architect
-I need a customer support agent that searches our knowledge base
-and can escalate unresolved issues to a human for review.
+/agentcraft:langchain-providers anthropic    # Anthropic extended thinking, ChatAnthropic
+/agentcraft:langchain-providers openai       # Responses API, reasoning_effort, streaming
+/agentcraft:langchain-providers bedrock      # ChatBedrockConverse, cross-region inference
+/agentcraft:langchain-providers ollama       # Local model setup
+
+/agentcraft:langchain-tools-mcp tools            # @tool, BaseTool, InjectedToolCallId
+/agentcraft:langchain-tools-mcp mcp              # MultiServerMCPClient, StdioConnection
+/agentcraft:langchain-tools-mcp structured-output
+
+/agentcraft:langgraph-deployment dev         # Local langgraph dev server
+/agentcraft:langgraph-deployment docker      # Docker Compose + Postgres + Redis
+/agentcraft:langgraph-deployment scale       # Horizontal scaling, BYOC
+
+/agentcraft:llm-evaluation deepeval
+/agentcraft:llm-evaluation ragas
+/agentcraft:llm-evaluation ci                # CI gating, pytest integration
 ```
 
-The agent produces a structured plan: topology choice, state schema, memory strategy, RAG pipeline config, and implementation order.
+### Using agents
 
-**Step 2 — Generate the implementation**
+Select an agent from the `/agents` picker or describe a task — Claude will delegate automatically when appropriate:
 
 ```text
-/agentcraft:code-generator
-Implement the plan above. Use Anthropic Claude via ChatBedrockConverse,
-PGVector for the knowledge base, and PostgresSaver for checkpointing.
+/agents
+# → agentcraft:agent-architect
+# "Design a supervisor-style multi-agent system for customer support with
+#  shared long-term memory and tool routing across three specialist sub-agents."
+
+/agents
+# → agentcraft:code-generator
+# "Implement the supervisor graph from the architect's plan."
+
+/agents
+# → agentcraft:debugger
+# "My execute_tool node isn't being called. Here is the graph and the LangSmith trace."
 ```
 
-The agent outputs complete, runnable Python files with a `pyproject.toml` dependency block and a `langgraph.json`.
+## Automation
 
-**Step 3 — Deploy to production**
+### SessionStart hook
 
-```text
-/agentcraft:deployment-specialist
-Set up a self-hosted deployment with Docker Compose.
+At the start of every Claude Code session, the plugin reads API keys from plugin config and writes a sourceable shell file to your project directory:
+
+```bash
+source .agentcraft.env
+# Sets LANGSMITH_API_KEY, LANGSMITH_PROJECT, LANGSMITH_TRACING,
+# ANTHROPIC_API_KEY, and OPENAI_API_KEY for the current shell.
+uv run python my_agent.py   # subprocess inherits all env vars
 ```
 
-The agent produces a working `docker-compose.yml` with the Agent Server, Postgres, and Redis containers configured correctly.
+Add `.agentcraft.env` to your `.gitignore` — it contains plaintext credentials.
 
-**Step 4 — Debug failures**
+### PostToolUse hook
 
-```text
-/agentcraft:debugger
-My search_knowledge_base tool is never being called.
-Trace: https://smith.langchain.com/public/...
+Every time Claude writes or edits a `.py` file, `ruff check --fix` runs automatically on that file. Requires `ruff` in `$PATH` or a project with `uv` and ruff in the dev dependencies.
+
+### Background monitors
+
+Two monitors activate lazily when their corresponding skills are first invoked in a session:
+
+| Monitor | Activates on | Watches |
+|---------|-------------|---------|
+| `langgraph-server-log` | `langgraph-deployment` skill | `logs/langgraph.log` |
+| `eval-output-log` | `llm-evaluation` skill | `logs/eval.log` |
+
+Redirect your process output to the expected log path to activate the monitor:
+
+```bash
+mkdir -p logs
+
+# LangGraph dev server
+langgraph dev 2>&1 | tee logs/langgraph.log
+
+# Evaluation run
+uv run pytest evals/ -s 2>&1 | tee logs/eval.log
 ```
 
-The agent reads the trace, identifies the root cause (missing `Field(description=...)`, schema mismatch, etc.), and outputs the exact file and line to change.
+Each new log line is delivered to Claude as a notification, so it can diagnose issues without you copying logs manually.
 
 ## Configuration
 
-When you enable the plugin, Claude Code prompts for the following values. All are optional except where noted.
+When you enable the plugin, Claude Code prompts for the following values. All are optional.
 
-| Variable | Required | Description | Example |
-|----------|----------|-------------|---------|
-| `LANGSMITH_API_KEY` | Recommended | Enables tracing and evaluation in LangSmith. Get one at [smith.langchain.com](https://smith.langchain.com). | `lsv2_pt_...` |
-| `LANGSMITH_PROJECT` | No | LangSmith project that traces are written to. | `my-agent` (default: `default`) |
-| `OPENAI_API_KEY` | Conditional | Required only if using OpenAI or Azure OpenAI models directly. | `sk-...` |
-| `ANTHROPIC_API_KEY` | Conditional | Required only if using Anthropic models directly (not via Bedrock). | `sk-ant-...` |
-
-Sensitive values (`LANGSMITH_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`) are stored in the OS keychain, not in `settings.json`.
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `langsmith_api_key` | Recommended | Enables tracing and evaluation. Get one at [smith.langchain.com](https://smith.langchain.com). Stored in OS keychain. |
+| `langsmith_project` | No | LangSmith project that traces are written to (default: `default`). |
+| `openai_api_key` | Conditional | Required only if using OpenAI or Azure OpenAI models directly. Stored in OS keychain. |
+| `anthropic_api_key` | Conditional | Required only if using Anthropic models directly (not via Bedrock). Stored in OS keychain. |
 
 For AWS Bedrock, configure credentials via the standard AWS credential chain (`~/.aws/credentials`, environment variables, or IAM role) — no plugin config entry is needed.
+
+### LSP prerequisites
+
+The plugin registers Pyright and Ruff as LSP servers, giving Claude real-time type errors and lint feedback while editing Python files. Install both tools before starting a session:
+
+```bash
+uv tool install pyright
+uv tool install ruff
+```
+
+If either binary is absent, that server is silently skipped — the plugin functions normally without them.
+
+## Support
+
+- **Bug reports and feature requests:** [Open a GitHub Issue](https://github.com/josephsearle/agentcraft/issues/new/choose)
+- **Questions:** [GitHub Discussions](https://github.com/josephsearle/agentcraft/discussions)
 
 ## Contributing
 
@@ -235,7 +269,7 @@ Contributions are welcome. The plugin is a collection of Markdown skill files �
 To add or improve a skill:
 
 1. Fork the repository and create a branch from `main`.
-2. Add or edit the skill under `skills/<skill-name>/SKILL.md`. Follow the frontmatter schema: `name`, `description` (with trigger phrases), and numbered steps.
+2. Add or edit the skill at `skills/<skill-name>/SKILL.md`. Follow the frontmatter schema: `name`, `description` (with trigger phrases), and numbered steps.
 3. If the skill loads reference files, add them to `skills/<skill-name>/references/`.
 4. Validate the plugin structure before opening a pull request:
 
@@ -246,9 +280,8 @@ claude plugin validate . --strict
 
 5. Open a pull request with a clear description of what changed and why.
 
-For significant changes — new skills, new agents, or changes to the layer model — please open an issue first to discuss the approach.
+For significant changes — new skills, changes to the layer model, new agents — please open an issue first to discuss the approach.
 
 ## License
 
-[MIT](LICENSE) © 2024 Joseph Searle
->>>>>>> 5ced87d (feat: initialise agentcraft Claude plugin)
+[MIT](LICENSE) © 2025 Joseph Searle

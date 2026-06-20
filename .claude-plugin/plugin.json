@@ -3,7 +3,7 @@
   "name": "agentcraft",
   "displayName": "AgentCraft",
   "version": "1.0.0",
-  "description": "Production-grade Claude plugin for building, evaluating, and deploying agents with the LangChain ecosystem — LangGraph, LangSmith, RAG pipelines, multi-agent topologies, MCP tools, and Python engineering standards.",
+  "description": "Production-grade Claude plugin for building, evaluating, and deploying agents with the LangChain/LangGraph ecosystem — RAG pipelines, multi-agent topologies, MCP tools, LLM evaluation, observability, and Python engineering standards.",
   "author": {
     "name": "Joseph Searle",
     "email": "josephwilliamsearle@gmail.com"
@@ -13,15 +13,16 @@
   "keywords": [
     "langchain",
     "langgraph",
-    "langsmith",
     "agents",
     "rag",
     "mcp",
     "multi-agent",
     "llm",
-    "python",
-    "production"
+    "evaluation",
+    "observability",
+    "python"
   ],
+  "defaultEnabled": false,
   "userConfig": {
     "langsmith_api_key": {
       "type": "string",

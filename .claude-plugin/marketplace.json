@@ -1,0 +1,17 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "agentcraft",
+  "description": "Production-grade toolkit for building LangChain/LangGraph agents: RAG, multi-agent topologies, MCP tools, LLM evaluation, observability, and Python engineering standards.",
+  "owner": {
+    "name": "Joseph Searle",
+    "url": "https://github.com/josephsearle"
+  },
+  "plugins": [
+    {
+      "name": "agentcraft",
+      "description": "13 specialised skills covering the complete agent development lifecycle — from Python project setup through multi-agent topology, RAG pipelines, MCP tool integration, LLM evaluation, observability, and production deployment with LangGraph Server.",
+      "source": "./",
+      "category": "developer-tools"
+    }
+  ]
+}

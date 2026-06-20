@@ -1,5 +1,6 @@
 ---
 name: langchain-tools-mcp
+argument-hint: "[tools|mcp|structured-output]"
 description: >
   Implement production-grade LangChain tools, MCP client integrations, server-side tools,
   and structured output in Python 3.11+ agent systems. Triggers on: @tool decorator usage,
@@ -13,6 +14,8 @@ description: >
   with_structured_output strategy selection, ProviderStrategy native JSON schema, ToolStrategy
   forced tool call, strict=True OpenAI schema constraints, and OutputFixingParser parse repair.
 ---
+
+If invoked with `$ARGUMENTS`, focus exclusively on that area (`tools`, `mcp`, or `structured-output`) and skip unrelated sections.
 
 ## Core Philosophy
 
@@ -105,8 +108,8 @@ After implementation, verify with:
 # Install deps
 uv add langchain langchain-core langchain-openai langchain-anthropic langchain-mcp-adapters
 
-# Type check
-uv run mypy src/ --strict
+# Type check (Pyright — see developer-experience skill)
+uv run pyright src/
 
 # Run tests
 uv run pytest tests/ -x -q
