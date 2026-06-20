@@ -167,40 +167,42 @@ prompt_at_tag = hub.pull("joke-generator:production")
 hub.push("my-org/my-prompt", prompt)
 ```
 
-### NEW — LangSmith Client (recommended)
+### NEW — MLflow Prompt Registry (recommended)
 
 ```python
-from langsmith import Client
+import mlflow
 
-client = Client()  # reads LANGSMITH_API_KEY from environment
+# Register a prompt (versioned automatically)
+mlflow.register_prompt(
+    name="retrieval-qa-chat",
+    template="Answer the question based on the context.\n\nContext: {{context}}\n\nQuestion: {{question}}",
+    commit_message="Initial version",
+)
 
-# Pull latest
-prompt = client.pull_prompt("langchain-ai/retrieval-qa-chat")
+# Load by name (latest version)
+prompt_obj = mlflow.load_prompt("prompts:/retrieval-qa-chat/latest")
 
-# Pull by tag
-prompt_tagged = client.pull_prompt("joke-generator:production")
+# Load a specific version
+prompt_v1 = mlflow.load_prompt("prompts:/retrieval-qa-chat/1")
 
-# Pull by commit hash
-prompt_commit = client.pull_prompt("joke-generator:a1b2c3d4")
+# Load by alias (set via UI or SDK)
+prompt_prod = mlflow.load_prompt("prompts:/retrieval-qa-chat@production")
 
-# Push
-client.push_prompt("my-org/my-prompt", object=prompt)
+# Use with LangChain
+from langchain_core.prompts import ChatPromptTemplate
+lc_prompt = ChatPromptTemplate.from_template(prompt_obj.template)
 ```
-
-> **Gotcha:** `pull_prompt` and `hub.pull` both require `LANGSMITH_API_KEY`. A known LangSmith
-> SDK issue (langsmith-sdk #1624) shows the env var isn't always auto-detected — if calls fail
-> silently, pass the key explicitly: `Client(api_key=os.environ["LANGSMITH_API_KEY"])`.
 
 ### Migration table
 
 | Old | New |
 |---|---|
-| `from langchain import hub` | `from langsmith import Client; client = Client()` |
-| `from langchain_classic import hub` | `from langsmith import Client; client = Client()` |
-| `hub.pull("owner/name")` | `client.pull_prompt("owner/name")` |
-| `hub.pull("name:tag")` | `client.pull_prompt("name:tag")` |
-| `hub.pull("name:commit")` | `client.pull_prompt("name:commit")` |
-| `hub.push("name", prompt)` | `client.push_prompt("name", object=prompt)` |
+| `from langchain import hub` | `import mlflow` |
+| `from langchain_classic import hub` | `import mlflow` |
+| `hub.pull("owner/name")` | `mlflow.load_prompt("prompts:/name/latest")` |
+| `hub.pull("name:tag")` | `mlflow.load_prompt("prompts:/name@tag")` |
+| `hub.pull("name:commit")` | `mlflow.load_prompt("prompts:/name/version")` |
+| `hub.push("name", prompt)` | `mlflow.register_prompt(name="name", template=...)` |
 
 ---
 

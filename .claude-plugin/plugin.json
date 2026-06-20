@@ -24,19 +24,11 @@
   ],
   "defaultEnabled": false,
   "userConfig": {
-    "langsmith_api_key": {
+    "mlflow_tracking_uri": {
       "type": "string",
-      "title": "LangSmith API Key",
-      "description": "Your LangSmith API key for tracing, evaluation, and prompt management. Get one at https://smith.langchain.com",
-      "sensitive": true,
+      "title": "MLflow Tracking URI",
+      "description": "MLflow tracking server URI (e.g. http://localhost:5000 or a remote MLflow server). Omit to use the default local file store.",
       "required": false
-    },
-    "langsmith_project": {
-      "type": "string",
-      "title": "LangSmith Project Name",
-      "description": "The LangSmith project to log traces to (defaults to 'default')",
-      "required": false,
-      "default": "default"
     },
     "openai_api_key": {
       "type": "string",

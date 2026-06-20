@@ -516,7 +516,7 @@ class WebSocketStreamHandler(AsyncCallbackHandler):
 | Placement | Scope | Recommendation |
 |---|---|---|
 | `config={"callbacks": [h]}` | This call + all sub-runnables | **Preferred** — request-scoped, propagates via COPIABLE_KEYS |
-| `ChatOpenAI(callbacks=[h])` | Every call from this model instance | Use for persistent handlers (LangSmith tracer) |
+| `ChatOpenAI(callbacks=[h])` | Every call from this model instance | Use for persistent handlers (e.g. token counters) |
 
 ```python
 from langchain_core.callbacks import BaseCallbackHandler
@@ -544,34 +544,35 @@ result = chain.invoke({"question": "What is 2+2?"}, config={"callbacks": [logger
 
 ---
 
-## Callbacks vs LangSmith vs OpenTelemetry
+## Callbacks vs MLflow vs OpenTelemetry
 
 | Mechanism | Best for | Setup |
 |---|---|---|
 | `BaseCallbackHandler` | In-process hooks: token counting, streaming to UI, custom guardrails | Subclass and pass via `config={"callbacks": [...]}` |
-| LangSmith tracing | End-to-end agent/chain observability, evals, prompt management | `LANGCHAIN_TRACING_V2=true` + `LANGSMITH_API_KEY` |
+| MLflow tracing | End-to-end agent/chain observability, experiment tracking, prompt management | `mlflow.langchain.autolog()` + `MLFLOW_TRACKING_URI` |
 | OpenTelemetry | Unifying LLM traces with existing distributed tracing/APM infra | `opentelemetry-sdk` + LangChain OTel exporter |
 
-### LangSmith tracing setup
+### MLflow tracing setup
 
 ```python
-import os
+import mlflow
+import mlflow.langchain
 
-# Set in environment before importing LangChain
-os.environ["LANGCHAIN_TRACING_V2"] = "true"
-os.environ["LANGSMITH_API_KEY"] = "ls__..."       # from LangSmith UI
-os.environ["LANGCHAIN_PROJECT"] = "my-project"   # optional; defaults to "default"
+# Point at your MLflow server (omit to use local file store)
+# mlflow.set_tracking_uri("http://localhost:5000")
+
+mlflow.langchain.autolog()   # captures inputs, outputs, latency, token counts automatically
 
 from langchain.chat_models import init_chat_model
 
 model = init_chat_model("openai:gpt-4o-mini")
-# All calls are now automatically traced to LangSmith
+# All calls are now automatically traced to MLflow
 result = model.invoke("Hello!")
 ```
 
 ### BaseTracer
 
 `from langchain_core.tracers import BaseTracer` — buffers `Run` objects keyed by `run_id`,
-maintains parent/child hierarchy via `parent_run_id`, and flushes to a backend. Subclassed by
-`LangChainTracer` (→ LangSmith). `Run` shape: `id`, `name`, `run_type`, `inputs`, `outputs`,
-`error`, `start_time`, `end_time`, `tags`, `metadata`, `parent_run_id`, `child_runs`.
+maintains parent/child hierarchy via `parent_run_id`, and flushes to a backend. `Run` shape:
+`id`, `name`, `run_type`, `inputs`, `outputs`, `error`, `start_time`, `end_time`, `tags`,
+`metadata`, `parent_run_id`, `child_runs`.

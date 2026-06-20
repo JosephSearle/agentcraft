@@ -231,8 +231,8 @@ agent.invoke({"messages": [{"role": "human", "content": "What's my name?"}]}, co
 
 | Old | New |
 |---|---|
-| `from langchain import hub; hub.pull("name")` | `from langsmith import Client; Client().pull_prompt("name")` |
-| `from langchain_classic import hub; hub.pull("name:tag")` | `Client().pull_prompt("name:tag")` |
+| `from langchain import hub; hub.pull("name")` | `mlflow.load_prompt("prompts:/name/latest")` |
+| `from langchain_classic import hub; hub.pull("name:tag")` | `mlflow.load_prompt("prompts:/name@tag")` |
 
 ```python
 # OLD — hub.pull
@@ -241,16 +241,19 @@ from langchain_classic import hub
 prompt = hub.pull("langchain-ai/retrieval-qa-chat")
 versioned = hub.pull("joke-generator:a1b2c3d4")
 
-# NEW — LangSmith Client
-from langsmith import Client
+# NEW — MLflow Prompt Registry
+import mlflow
 
-client = Client()   # LANGSMITH_API_KEY from env
-prompt = client.pull_prompt("langchain-ai/retrieval-qa-chat")
-versioned = client.pull_prompt("joke-generator:a1b2c3d4")
-tagged = client.pull_prompt("joke-generator:production")
+# Register once (versioned automatically)
+mlflow.register_prompt(
+    name="retrieval-qa-chat",
+    template="Answer the question based on context.\n\nContext: {{context}}\n\nQuestion: {{question}}",
+)
 
-# Push
-client.push_prompt("my-org/my-prompt", object=prompt)
+# Load by name (latest), version, or alias
+prompt_obj = mlflow.load_prompt("prompts:/retrieval-qa-chat/latest")
+versioned = mlflow.load_prompt("prompts:/retrieval-qa-chat/1")
+tagged = mlflow.load_prompt("prompts:/retrieval-qa-chat@production")
 ```
 
 ---
@@ -467,8 +470,8 @@ uv add langchain-text-splitters
 # Experimental (SemanticChunker etc.)
 uv add langchain-experimental
 
-# LangSmith tracing
-uv add langsmith
+# MLflow tracing
+uv add mlflow
 ```
 
 > **Rule:** Never use `pip install` — use `uv add` exclusively.
@@ -488,7 +491,7 @@ Execute migrations in this sequence to minimise breakage:
 | 5 | Rewrite `RetrievalQA` / `ConversationalRetrievalChain` → LCEL RAG | Removes classic dependency for RAG |
 | 6 | Replace `ConversationBufferMemory` with LangGraph checkpointer | Unlocks persistent, multi-session memory |
 | 7 | Replace `AgentExecutor` / `create_react_agent` with `create_agent` | Access to v1 agent features (structured response, etc.) |
-| 8 | Replace `hub.pull` with `Client().pull_prompt` | Removes classic dependency; more control over prompt versions |
+| 8 | Replace `hub.pull` with `mlflow.load_prompt` / `mlflow.register_prompt` | Removes LangSmith dependency; prompts versioned in MLflow Prompt Registry |
 
 **Thresholds to revisit approach:**
 - If `ProviderStrategy` raises `400 Schema is too complex for grammar compilation` → flatten schema or switch to `ToolStrategy`

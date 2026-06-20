@@ -14,7 +14,7 @@
 deepagents is an opinionated harness layer on top of LangGraph's `create_react_agent`
 for **long-horizon, planning-heavy, tool-heavy work** (Claude Code-style agents). It returns
 a compiled LangGraph graph so you can use `.invoke`, `.stream`, and `.get_state` without
-adapter code. It integrates LangSmith tracing/deployment by default and is model-agnostic
+adapter code. It integrates MLflow tracing by default and is model-agnostic
 (any tool-calling LLM). Security model: "trust the LLM" — enforce boundaries at the
 tool/sandbox level, not via model self-policing.
 
@@ -206,8 +206,8 @@ Subagents inherit the parent middleware stack **minus** MemoryMiddleware and Sub
 | `FilesystemBackend(root_dir, virtual_mode=True)` | Real disk | Path-guardrail only (**NOT a sandbox**) | Mild isolation; prompt-injection risk remains |
 | `CompositeBackend(default, routes={...})` | Mixed | Mixed | Route `/memories/` to Store, rest to State |
 | `LocalShellBackend` | Ephemeral | **None** — unrestricted shell | Development with HITL only |
-| `ContextHubBackend` | LangSmith Hub versioned | LangSmith auth | Auditable, versioned memory (beta) |
-| Sandbox backends (Modal/Daytona/Runloop/LangSmith) | Varies | Container isolation | **Production code execution** |
+| `ContextHubBackend` | Hub versioned | Separate credentials required | Auditable, versioned memory (beta) |
+| Sandbox backends (Modal/Daytona/Runloop) | Varies | Container isolation | **Production code execution** |
 
 ### `CompositeBackend` routing
 
@@ -325,7 +325,7 @@ agent = create_deep_agent(
             name="coder",
             description="Code generation and review.",
             graph_id="coder",
-            url="https://coder.langsmith.dev",  # HTTP transport for remote deployment
+            url="https://coder.your-langgraph-server.example.com",  # HTTP transport for remote deployment
             headers={"Authorization": "Bearer sk-..."},
         ),
     ],
@@ -335,8 +335,8 @@ agent = create_deep_agent(
 Task metadata is stored in the `async_tasks` state channel — it survives summarization,
 unlike tool messages that may be compacted away.
 
-Auth for LangGraph Platform: automatic via `LANGGRAPH_API_KEY` / `LANGSMITH_API_KEY` /
-`LANGCHAIN_API_KEY` environment variables. Self-hosted: pass `headers`.
+Auth for LangGraph Platform: automatic via `LANGGRAPH_API_KEY` / `LANGCHAIN_API_KEY`
+environment variables. Self-hosted: pass `headers`.
 
 ---
 
@@ -345,7 +345,7 @@ Auth for LangGraph Platform: automatic via `LANGGRAPH_API_KEY` / `LANGSMITH_API_
 | Feature | Status | Available since |
 |---|---|---|
 | `create_deep_agent`, sync subagents, filesystem, TodoList, Summarization, prompt caching | **GA / stable** | 0.1.x |
-| Sandboxes (Modal / Daytona / Runloop / LangSmith) | **Stable** | 0.4 |
+| Sandboxes (Modal / Daytona / Runloop) | **Stable** | 0.4 |
 | Harness profiles, `ContextHubBackend` | **Beta** | 0.6 |
 | DeltaChannel (langgraph ≥1.2 required) | **Beta** | 0.6 |
 | Async subagents (`AsyncSubAgent`) | **Preview** — APIs may change | 0.5 (Apr 7 2026) |

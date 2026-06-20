@@ -25,7 +25,7 @@ RemoteGraph(
     name: str,              # graph name or assistant ID on the deployment
     *,
     url: str | None = None,           # Agent Server base URL
-    api_key: str | None = None,       # LANGSMITH_API_KEY (env var also accepted)
+    api_key: str | None = None,       # LANGGRAPH_API_KEY (env var also accepted)
     headers: dict | None = None,      # extra HTTP headers (auth, tenant, etc.)
     client: LangGraphClient | None = None,      # async client (alternative to url)
     sync_client: SyncLangGraphClient | None = None,  # sync client (alternative to url)
@@ -40,8 +40,7 @@ raises a `ValueError` at runtime when the graph is first invoked.
 
 | Variable | Purpose |
 |---|---|
-| `LANGSMITH_API_KEY` | Default API key for Agent Server authentication |
-| `LANGGRAPH_API_KEY` | Alternative; `LANGSMITH_API_KEY` takes precedence |
+| `LANGGRAPH_API_KEY` | API key for Agent Server authentication |
 
 ### Methods
 
@@ -73,18 +72,18 @@ from pydantic import BaseModel
 
 # ── Remote graph wiring ───────────────────────────────────────────────────────
 
-AGENT_SERVER_URL = os.environ["AGENT_SERVER_URL"]  # e.g. https://api.smith.langchain.com
+AGENT_SERVER_URL = os.environ["AGENT_SERVER_URL"]  # e.g. https://your-langgraph-server.example.com
 
 research_remote = RemoteGraph(
     "research_agent",
     url=AGENT_SERVER_URL,
-    api_key=os.environ["LANGSMITH_API_KEY"],
+    api_key=os.environ["LANGGRAPH_API_KEY"],
 )
 
 coding_remote = RemoteGraph(
     "coding_agent",
     url=AGENT_SERVER_URL,
-    api_key=os.environ["LANGSMITH_API_KEY"],
+    api_key=os.environ["LANGGRAPH_API_KEY"],
 )
 
 # ── Orchestrator ──────────────────────────────────────────────────────────────
@@ -154,7 +153,7 @@ from langgraph.pregel.remote import RemoteGraph
 remote = RemoteGraph(
     "my_agent",
     url=os.environ["AGENT_SERVER_URL"],
-    api_key=os.environ["LANGSMITH_API_KEY"],
+    api_key=os.environ["LANGGRAPH_API_KEY"],
 )
 
 # Stateful multi-turn usage
@@ -189,7 +188,7 @@ from langgraph.pregel.remote import RemoteGraph
 remote = RemoteGraph(
     "specialist_agent",
     url=os.environ["AGENT_SERVER_URL"],
-    api_key=os.environ["LANGSMITH_API_KEY"],
+    api_key=os.environ["LANGGRAPH_API_KEY"],
 )
 
 
@@ -247,13 +246,10 @@ async def invoke_with_retry(
 
 ## Distributed Tracing
 
-`RemoteGraph` propagates LangSmith trace context automatically when `LANGSMITH_API_KEY` is
-set and LangSmith tracing is enabled. Sub-agent runs appear as nested spans under the
-orchestrator's root trace. To scope traces in deepagents CLI contexts:
-
-```bash
-export DEEPAGENTS_CODE_LANGSMITH_API_KEY="ls__..."
-```
+`RemoteGraph` propagates MLflow trace context automatically when `mlflow.langchain.autolog()`
+is enabled. Sub-agent runs appear as nested spans under the orchestrator's root trace.
+Set `MLFLOW_TRACKING_URI` in both orchestrator and remote environments to ensure traces
+are written to the same MLflow server.
 
 ---
 
@@ -284,7 +280,7 @@ agent = create_deep_agent(
             name="coder",
             description="Code generation and review.",
             graph_id="coder",
-            url="https://coder-deployment.langsmith.dev",  # HTTP transport for remote deploy
+            url="https://coder.your-langgraph-server.example.com",  # HTTP transport for remote deploy
             headers={"Authorization": "Bearer sk-..."},    # custom auth for self-hosted
         ),
     ],
@@ -328,6 +324,6 @@ overhead for co-located agents.
 |---|---|---|
 | `ValueError` on first invoke | No `url`, `client`, or `sync_client` provided | Always supply exactly one connection option |
 | Remote state not persisted across turns | Missing `thread_id` in config | Pass `config={"configurable": {"thread_id": "..."}}` to all calls |
-| Trace gap between orchestrator and remote span | `LANGSMITH_API_KEY` not set in remote environment | Ensure env var in both orchestrator and remote deployments |
+| Trace gap between orchestrator and remote span | `MLFLOW_TRACKING_URI` not set in remote environment | Ensure `MLFLOW_TRACKING_URI` points to the same MLflow server in both orchestrator and remote deployments |
 | Async task metadata lost after summarization | Using regular `SubAgentMiddleware` | Switch to `AsyncSubAgentMiddleware` — tasks stored in `async_tasks` channel |
 | Co-deployed ASGI transport fails | Graph ID not registered in `langgraph.json` | Add all co-deployed graph IDs to `langgraph.json` `graphs` key |

@@ -63,8 +63,7 @@ Open the MLflow UI at `http://localhost:5000` → select your experiment → cli
 
 ## Trace sampling (high-traffic)
 
-MLflow does not expose a built-in sampling rate for LangChain autolog (unlike LangSmith's
-`LANGSMITH_TRACING_SAMPLING_RATE`). To reduce trace volume:
+MLflow does not expose a built-in sampling rate for LangChain autolog. To reduce trace volume:
 
 ```python
 import random

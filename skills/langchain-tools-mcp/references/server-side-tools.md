@@ -11,7 +11,7 @@ compute, or write the tool's internals.
 | OpenAI | `langchain-openai` | `web_search`, `file_search`, `code_interpreter`, `computer_use` |
 | Anthropic | `langchain-anthropic` | `web_search`, `web_fetch`, `code_execution`, `text_editor`, `computer_use`, `mcp_toolset` |
 
-All calls appear in LangSmith traces alongside agent reasoning steps — MCP tool calls and
+All calls appear in MLflow traces alongside agent reasoning steps — MCP tool calls and
 built-in tool calls are traceable end-to-end.
 
 ---
@@ -424,9 +424,9 @@ resp = model.invoke("Use the example-mcp tools to get the current server status.
 
 ---
 
-## LangSmith Tracing
+## MLflow Tracing
 
-All server-side tool calls appear in LangSmith traces. The trace structure shows:
+All server-side tool calls appear in MLflow traces (when `mlflow.langchain.autolog()` is enabled). The trace structure shows:
 - The agent reasoning step (LLM call)
 - Each tool invocation with its input arguments
 - Each tool result (content blocks, artifacts)

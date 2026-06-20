@@ -16,7 +16,7 @@ If invoked with `$ARGUMENTS`, focus exclusively on that mode (`dev` for local de
 
 LangGraph Server is the self-hosted runtime for production LangGraph agents. It exposes a REST +
 SSE API over your compiled graphs and manages thread/run/checkpoint persistence via Postgres and
-streaming via Redis. It replaces LangSmith Cloud deployment entirely — there is no vendor lock-in.
+streaming via Redis. It is a self-hosted runtime with no vendor lock-in.
 
 Production topology:
 

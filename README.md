@@ -192,7 +192,7 @@ Select an agent from the `/agents` picker or describe a task — Claude will del
 
 /agents
 # → agentcraft:debugger
-# "My execute_tool node isn't being called. Here is the graph and the LangSmith trace."
+# "My execute_tool node isn't being called. Here is the graph and the MLflow trace."
 ```
 
 ## Automation
@@ -203,8 +203,7 @@ At the start of every Claude Code session, the plugin reads API keys from plugin
 
 ```bash
 source .agentcraft.env
-# Sets LANGSMITH_API_KEY, LANGSMITH_PROJECT, LANGSMITH_TRACING,
-# ANTHROPIC_API_KEY, and OPENAI_API_KEY for the current shell.
+# Sets MLFLOW_TRACKING_URI, ANTHROPIC_API_KEY, and OPENAI_API_KEY for the current shell.
 uv run python my_agent.py   # subprocess inherits all env vars
 ```
 
@@ -243,8 +242,7 @@ When you enable the plugin, Claude Code prompts for the following values. All ar
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `langsmith_api_key` | Recommended | Enables tracing and evaluation. Get one at [smith.langchain.com](https://smith.langchain.com). Stored in OS keychain. |
-| `langsmith_project` | No | LangSmith project that traces are written to (default: `default`). |
+| `mlflow_tracking_uri` | No | MLflow tracking server URI (e.g. `http://localhost:5000`). Omit to use the default local file store. |
 | `openai_api_key` | Conditional | Required only if using OpenAI or Azure OpenAI models directly. Stored in OS keychain. |
 | `anthropic_api_key` | Conditional | Required only if using Anthropic models directly (not via Bedrock). Stored in OS keychain. |
 

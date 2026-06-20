@@ -77,7 +77,7 @@ asyncio.run(stream_tokens_to_ui("Why is the sky blue?"))
 
 | Field | Type | Default | Meaning |
 |---|---|---|---|
-| `tags` | `list[str]` | `[]` | Propagated to all callbacks and sub-calls; filterable in LangSmith |
+| `tags` | `list[str]` | `[]` | Propagated to all callbacks and sub-calls; filterable in tracing backends (e.g. MLflow) |
 | `metadata` | `dict[str, Any]` | `{}` | JSON-serializable; passed to `*_start` callback methods |
 | `callbacks` | `Callbacks` | `None` | Handlers for this call and all sub-calls |
 | `run_name` | `str` | class name | Tracer run name; **not** copied to children |
@@ -91,7 +91,7 @@ asyncio.run(stream_tokens_to_ui("Why is the sky blue?"))
 `COPIABLE_KEYS = ("tags", "metadata", "callbacks", "configurable")` — these four fields are
 deep-merged into every child Runnable's config at runtime. `run_name` and `run_id` are **not**
 in `COPIABLE_KEYS`: each child gets its own auto-generated run_id and its own class name as
-run_name. This is critical for building correct call trees in LangSmith.
+run_name. This is critical for building correct call trees in tracers (e.g. MLflow).
 
 | Key | Copied to children | Merge strategy |
 |---|---|---|

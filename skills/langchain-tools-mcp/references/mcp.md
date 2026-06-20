@@ -377,7 +377,7 @@ exposes deployed agents as MCP tools at the `/mcp` endpoint.
 | Disable | `"http": {"disable_mcp": true}` in `langgraph.json` |
 | Session model | Stateless — each `/mcp` request is independent |
 
-Every agent deployed on LangSmith Deployment (renamed from LangGraph Platform, Oct 2025)
+Every agent deployed on LangGraph Platform
 exposes its own MCP endpoint automatically — no custom code required. Add custom auth
 middleware to expose user-scoped tools.
 
