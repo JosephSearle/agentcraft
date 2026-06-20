@@ -1,9 +1,13 @@
+<div align="center">
+
 # AgentCraft
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11+-blue)](https://www.python.org/downloads/)
 [![LangGraph](https://img.shields.io/badge/LangGraph-1.x-green)](https://langchain-ai.github.io/langgraph/)
 [![LangChain](https://img.shields.io/badge/LangChain-Core_1.x-green)](https://python.langchain.com/)
+
+</div>
 
 Claude Code plugin for building production LangGraph agents with the full LangChain/LangGraph stack.
 
