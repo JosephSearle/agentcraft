@@ -3,7 +3,7 @@
   "name": "agentcraft",
   "displayName": "AgentCraft",
   "version": "1.0.0",
-  "description": "Production-grade Claude plugin for building, evaluating, and deploying agents with the LangChain/LangGraph ecosystem — RAG pipelines, multi-agent topologies, MCP tools, LLM evaluation, observability, and Python engineering standards.",
+  "description": "Production-grade Claude plugin for building, evaluating, and deploying agents with the LangChain/LangGraph/deepagents ecosystem — 20 specialised skills covering RAG pipelines, multi-agent topologies, Deep Agents harness, MCP tools, LLM evaluation, observability, and Python engineering standards.",
   "author": {
     "name": "Joseph Searle",
     "email": "josephwilliamsearle@gmail.com"
@@ -22,27 +22,5 @@
     "observability",
     "python"
   ],
-  "defaultEnabled": false,
-  "userConfig": {
-    "mlflow_tracking_uri": {
-      "type": "string",
-      "title": "MLflow Tracking URI",
-      "description": "MLflow tracking server URI (e.g. http://localhost:5000 or a remote MLflow server). Omit to use the default local file store.",
-      "required": false
-    },
-    "openai_api_key": {
-      "type": "string",
-      "title": "OpenAI API Key",
-      "description": "Optional — required only if using OpenAI or Azure OpenAI models",
-      "sensitive": true,
-      "required": false
-    },
-    "anthropic_api_key": {
-      "type": "string",
-      "title": "Anthropic API Key",
-      "description": "Optional — required only if using Anthropic models directly (not via Bedrock)",
-      "sensitive": true,
-      "required": false
-    }
-  }
+  "defaultEnabled": false
 }

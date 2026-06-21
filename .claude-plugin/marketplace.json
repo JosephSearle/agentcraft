@@ -9,7 +9,7 @@
   "plugins": [
     {
       "name": "agentcraft",
-      "description": "13 specialised skills covering the complete agent development lifecycle — from Python project setup through multi-agent topology, RAG pipelines, MCP tool integration, LLM evaluation, observability, and production deployment with LangGraph Server.",
+      "description": "20 specialised skills covering the complete agent development lifecycle — from Python project setup through multi-agent topology, Deep Agents harness, RAG pipelines, MCP tool integration, LLM evaluation, observability, and production deployment with LangGraph Server.",
       "source": "./",
       "category": "developer-tools"
     }

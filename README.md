@@ -6,6 +6,7 @@
 [![Python](https://img.shields.io/badge/python-3.11+-blue)](https://www.python.org/downloads/)
 [![LangGraph](https://img.shields.io/badge/LangGraph-1.x-green)](https://langchain-ai.github.io/langgraph/)
 [![LangChain](https://img.shields.io/badge/LangChain-Core_1.x-green)](https://python.langchain.com/)
+[![DeepAgents](https://img.shields.io/badge/deepagents-0.5+-purple)](https://pypi.org/project/deepagents/)
 
 </div>
 
@@ -13,9 +14,9 @@ Claude Code plugin for building production LangGraph agents with the full LangCh
 
 ## Highlights
 
-- **13 specialised skills** covering the complete agent development lifecycle — from Python project setup through multi-agent topology, RAG pipelines, MCP tool integration, LLM evaluation, observability, and production deployment. Four skills accept focus arguments to scope the session to a specific provider or topic (e.g. `/agentcraft:langchain-providers bedrock`).
+- **20 specialised skills** covering the complete agent development lifecycle — from Python project setup through multi-agent topology, Deep Agents harness, RAG pipelines, MCP tool integration, LLM evaluation, observability, and production deployment. Four skills accept focus arguments to scope the session to a specific provider or topic (e.g. `/agentcraft:langchain-providers bedrock`).
 - **6 specialist agents** — `agent-architect`, `code-generator`, `code-reviewer`, `debugger`, `deployment-specialist`, and `evaluator` — each with the right skills pre-wired and the right model and effort budget. `code-generator` runs in an isolated git worktree so generated code never pollutes your working tree.
-- **Automated developer environment** — a `SessionStart` hook writes API credentials from plugin config to `.agentcraft.env` in your project directory, and a `PostToolUse` hook runs `ruff check --fix` automatically on every Python file Claude writes or edits.
+- **Automated developer environment** — a `PostToolUse` hook runs `ruff check --fix` automatically on every Python file Claude writes or edits.
 - **Live code intelligence** — Pyright and Ruff language servers are bundled, giving Claude real-time type errors and lint feedback while editing agent code.
 - **Background log streaming** — monitors activate when deployment or evaluation skills fire, tailing `logs/langgraph.log` and `logs/eval.log` so Claude sees server output in real time without manual log piping.
 - **No deprecated patterns.** Skills enforce LangChain Core 1.x and LangGraph 1.x APIs: `create_agent`, `init_chat_model`, `PostgresSaver`, `InjectedStore`, `aindex()`. `AgentExecutor`, `LLMChain`, and `ConversationBufferMemory` are never suggested.
@@ -34,11 +35,9 @@ Claude Code plugin for building production LangGraph agents with the full LangCh
   - [Scoped invocation](#scoped-invocation)
   - [Using agents](#using-agents)
 - [Automation](#automation)
-  - [SessionStart hook](#sessionstart-hook)
   - [PostToolUse hook](#posttooluse-hook)
   - [Background monitors](#background-monitors)
-- [Configuration](#configuration)
-  - [LSP prerequisites](#lsp-prerequisites)
+- [LSP Prerequisites](#lsp-prerequisites)
 - [Support](#support)
 - [Contributing](#contributing)
 - [License](#license)
@@ -90,7 +89,14 @@ The 13 skills are organised into three layers. Each layer builds on the one belo
 | `langchain-rag` | Idempotent ingestion (`SQLRecordManager` + `aindex()`), vector store selection, hybrid search, `SemanticChunker`, retrieve-then-rerank. |
 | `langgraph-core` | `StateGraph`, reducers, `PostgresSaver`, `interrupt()`, `Command(resume=)`, streaming modes, `RetryPolicy`, `CachePolicy`, time-travel. |
 | `langgraph-memory` | Short-term context management (`trim_messages`, `SummarizationNode`) and long-term cross-thread memory (`PostgresStore`, `InjectedStore`, LangMem SDK). |
-| `langgraph-multiagent` | Supervisor pattern (`Command(goto=...)`), swarm (`create_handoff_tool`), `RemoteGraph`, `langgraph-bigtool`, Deep Agents harness. |
+| `langgraph-multiagent` | Supervisor pattern (`Command(goto=...)`), swarm (`create_handoff_tool`), `RemoteGraph`, `langgraph-bigtool`, Deep Agents harness overview. |
+| `deepagents-harness-and-claude` | `HarnessProfile`, `register_harness_profile`, prompt assembly order, `AnthropicPromptCachingMiddleware`, built-in Claude/Codex model profiles. |
+| `deepagents-filesystem` | `FilesystemMiddleware`, `FilesystemPermission`, `virtual_mode` security model, file tools, large-result eviction, multimodal file reads. |
+| `deepagents-sandbox` | `BaseSandbox`, `SandboxBackendProtocol`, Modal/Daytona/Runloop/AgentCore setup, sandbox lifecycle, TTL, secrets security model. |
+| `deepagents-subagents-and-async` | `SubAgent` TypedDict, `CompiledSubAgent`, `task` tool, `AsyncSubAgent`, five async task tools, `async_tasks` channel, ASGI in-process transport. |
+| `deepagents-skills-and-memory` | SKILL.md authoring, `SkillsMiddleware`, three-level progressive disclosure, AGENTS.md, `MemoryMiddleware`, source layering. |
+| `deepagents-rubric-and-eval` | `RubricMiddleware`, LLM-as-judge runtime evaluation, grader subagent, per-criterion feedback, integration with observability. |
+| `deepagents-codegen-dcode` | `dcode` CLI, headless/CI mode, `CodeInterpreterMiddleware`, QuickJS REPL, Terminal-Bench benchmarks. |
 | `prompt-engineering` | System prompt design for every node archetype — planner, router, executor, critic, summariser, RAG retriever — matched to the right technique (Zero-Shot, CoT, ReAct, ToT, Reflexion). |
 | `testing-foundations` | pytest, pytest-asyncio strict mode, LangChain mock objects, Hypothesis property-based testing, test layout conventions. |
 
@@ -113,7 +119,14 @@ developer-experience          ← pyproject.toml, uv, Ruff, pytest, pre-commit
        ├─ langchain-tools-mcp      ← define tools + MCP client
        │    └─ langgraph-core      ← customise graph topology
        │         ├─ langgraph-memory    ← short/long-term memory
-       │         └─ langgraph-multiagent  ← supervisor / swarm
+       │         └─ langgraph-multiagent  ← supervisor / swarm / RemoteGraph
+       │              └─ deepagents-harness-and-claude  ← HarnessProfile, model profiles
+       │                   ├─ deepagents-filesystem     ← file tools, permissions, eviction
+       │                   ├─ deepagents-sandbox        ← Modal/Daytona/Runloop/AgentCore
+       │                   ├─ deepagents-subagents-and-async  ← async tasks, ASGI transport
+       │                   ├─ deepagents-skills-and-memory    ← SKILL.md, AGENTS.md
+       │                   ├─ deepagents-rubric-and-eval      ← LLM-as-judge at runtime
+       │                   └─ deepagents-codegen-dcode        ← dcode CLI, QuickJS REPL
        ├─ langchain-rag            ← document retrieval
        ├─ prompt-engineering       ← node system prompts
        ├─ testing-foundations      ← test suite
@@ -197,18 +210,6 @@ Select an agent from the `/agents` picker or describe a task — Claude will del
 
 ## Automation
 
-### SessionStart hook
-
-At the start of every Claude Code session, the plugin reads API keys from plugin config and writes a sourceable shell file to your project directory:
-
-```bash
-source .agentcraft.env
-# Sets MLFLOW_TRACKING_URI, ANTHROPIC_API_KEY, and OPENAI_API_KEY for the current shell.
-uv run python my_agent.py   # subprocess inherits all env vars
-```
-
-Add `.agentcraft.env` to your `.gitignore` — it contains plaintext credentials.
-
 ### PostToolUse hook
 
 Every time Claude writes or edits a `.py` file, `ruff check --fix` runs automatically on that file. Requires `ruff` in `$PATH` or a project with `uv` and ruff in the dev dependencies.
@@ -236,19 +237,7 @@ uv run pytest evals/ -s 2>&1 | tee logs/eval.log
 
 Each new log line is delivered to Claude as a notification, so it can diagnose issues without you copying logs manually.
 
-## Configuration
-
-When you enable the plugin, Claude Code prompts for the following values. All are optional.
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `mlflow_tracking_uri` | No | MLflow tracking server URI (e.g. `http://localhost:5000`). Omit to use the default local file store. |
-| `openai_api_key` | Conditional | Required only if using OpenAI or Azure OpenAI models directly. Stored in OS keychain. |
-| `anthropic_api_key` | Conditional | Required only if using Anthropic models directly (not via Bedrock). Stored in OS keychain. |
-
-For AWS Bedrock, configure credentials via the standard AWS credential chain (`~/.aws/credentials`, environment variables, or IAM role) — no plugin config entry is needed.
-
-### LSP prerequisites
+## LSP Prerequisites
 
 The plugin registers Pyright and Ruff as LSP servers, giving Claude real-time type errors and lint feedback while editing Python files. Install both tools before starting a session:
 
