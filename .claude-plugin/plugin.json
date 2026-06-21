@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "agentcraft",
   "displayName": "AgentCraft",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Production-grade Claude plugin for building, evaluating, and deploying agents with the LangChain/LangGraph/deepagents ecosystem — 20 specialised skills covering RAG pipelines, multi-agent topologies, Deep Agents harness, MCP tools, LLM evaluation, observability, and Python engineering standards.",
   "author": {
     "name": "Joseph Searle",
